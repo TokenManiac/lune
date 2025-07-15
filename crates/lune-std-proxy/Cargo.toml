@@ -1,0 +1,20 @@
+[package]
+name = "lune-std-proxy"
+version = "0.3.0"
+edition = "2024"
+license = "MPL-2.0"
+repository = "https://github.com/lune-org/lune"
+description = "Lune standard library - Proxy"
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+mlua = { version = "0.11.0", features = ["luau"] }
+url = "2.5"
+
+lune-utils = { version = "0.3.0", path = "../lune-utils" }
+lune-std-net = { version = "0.3.0", path = "../lune-std-net" }

@@ -86,9 +86,15 @@ async fn fetch_inner(
     mut request: Request,
 ) -> Result<Response, String> {
     loop {
-        let stream = HttpStream::connect_url(url.clone())
-            .await
-            .map_err(|e| e.to_string())?;
+        let stream = if let Some(proxy) = &request.proxy {
+            HttpStream::connect_url_via_socks5(proxy, url.clone())
+                .await
+                .map_err(|e| e.to_string())?
+        } else {
+            HttpStream::connect_url(url.clone())
+                .await
+                .map_err(|e| e.to_string())?
+        };
 
         let (mut sender, conn) = handshake(HyperIo::from(stream))
             .await

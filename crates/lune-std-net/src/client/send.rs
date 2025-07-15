@@ -51,7 +51,11 @@ pub async fn send(mut request: Request, lua: Lua) -> LuaResult<Response> {
 
     // ... we can now safely continue and send the request
     loop {
-        let stream = HttpStream::connect_url(url.clone()).await?;
+        let stream = if let Some(proxy) = &request.proxy {
+            HttpStream::connect_url_via_socks5(proxy, url.clone()).await?
+        } else {
+            HttpStream::connect_url(url.clone()).await?
+        };
 
         let (mut sender, conn) = handshake(HyperIo::from(stream)).await.into_lua_err()?;
 

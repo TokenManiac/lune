@@ -86,6 +86,27 @@ impl MaybeTlsStream {
     }
 
     /**
+       Connects to the given URL using a SOCKS5 proxy.
+    */
+    pub async fn connect_url_via_socks5(proxy: &Url, url: Url) -> Result<Self> {
+        let Some(host) = url.host() else {
+            return Err(Error::other("unknown or missing host"));
+        };
+        let Some(port) = url.port_or_known_default() else {
+            return Err(Error::other("unknown or missing port"));
+        };
+
+        let use_tls = match url.scheme() {
+            "http" | "ws" => false,
+            "https" | "wss" => true,
+            s => return Err(Error::other(format!("unsupported scheme: {s}"))),
+        };
+
+        let host = host.to_string();
+        crate::client::socks::connect_socks5(proxy, &host, port, use_tls).await
+    }
+
+    /**
         Returns the local address of the stream.
     */
     pub fn local_addr(&self) -> Result<SocketAddr> {
@@ -190,6 +211,20 @@ impl WsStream {
         let url_str = url.to_string();
 
         let stream = MaybeTlsStream::connect_url(url).await?;
+        let (inner, _) = async_tungstenite::client_async(url_str, stream)
+            .await
+            .map_err(Error::other)?;
+
+        Ok(Self { inner })
+    }
+
+    /**
+       Connects to the given URL using a SOCKS5 proxy.
+    */
+    pub async fn connect_url_via_socks5(proxy: &Url, url: Url) -> Result<Self> {
+        let url_str = url.to_string();
+
+        let stream = MaybeTlsStream::connect_url_via_socks5(proxy, url).await?;
         let (inner, _) = async_tungstenite::client_async(url_str, stream)
             .await
             .map_err(Error::other)?;
