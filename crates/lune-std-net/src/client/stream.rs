@@ -107,18 +107,6 @@ impl MaybeTlsStream {
     pub fn set_ttl(&self, ttl: u32) -> Result<()> {
         self.as_ref().set_ttl(ttl)
     }
-
-    pub async fn upgrade_tls(self, host: &str) -> Result<Self> {
-        match self {
-            MaybeTlsStream::Plain(stream) => {
-                let servname = ServerName::try_from(host).map_err(Error::other)?.to_owned();
-                let connector = TlsConnector::from(Arc::clone(&CLIENT_CONFIG));
-                let stream = connector.connect(servname, *stream).await?;
-                Ok(MaybeTlsStream::Tls(Box::new(TlsStream::Client(stream))))
-            }
-            MaybeTlsStream::Tls(_) => Ok(self),
-        }
-    }
 }
 
 impl AsRef<TcpStream> for MaybeTlsStream {

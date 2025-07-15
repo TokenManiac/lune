@@ -49,14 +49,6 @@ pub async fn connect_tcp(host: String, port: u16, config: TcpConfig) -> LuaResul
     Ok(Tcp::from(stream))
 }
 
-/**
-    Upgrades a plain TCP stream to use TLS.
-*/
-pub async fn wrap_tls(stream: Tcp, host: String) -> LuaResult<Tcp> {
-    stream.start_tls(&host).await.into_lua_err()?;
-    Ok(stream)
-}
-
 fn try_follow_redirect(
     url: &mut Url,
     request: &mut Request,
