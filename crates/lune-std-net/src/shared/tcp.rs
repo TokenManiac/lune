@@ -2,10 +2,7 @@ use std::{io::Error, net::SocketAddr, sync::Arc};
 
 use async_lock::Mutex as AsyncMutex;
 use bstr::BString;
-use futures::{
-    io::{ReadHalf, WriteHalf},
-    prelude::*,
-};
+use futures::prelude::*;
 
 use mlua::prelude::*;
 
@@ -17,16 +14,18 @@ const DEFAULT_BUFFER_SIZE: usize = 1024;
 pub struct Tcp {
     local_addr: Arc<Option<SocketAddr>>,
     remote_addr: Arc<Option<SocketAddr>>,
-    read_half: Arc<AsyncMutex<ReadHalf<MaybeTlsStream>>>,
-    write_half: Arc<AsyncMutex<WriteHalf<MaybeTlsStream>>>,
+    stream: Arc<AsyncMutex<Option<MaybeTlsStream>>>,
 }
 
 impl Tcp {
     async fn read(&self, size: usize) -> Result<Vec<u8>, Error> {
         let mut buf = vec![0; size];
 
-        let mut handle = self.read_half.lock().await;
-        let read = handle.read(&mut buf).await?;
+        let mut handle = self.stream.lock().await;
+        let Some(stream) = handle.as_mut() else {
+            return Err(Error::other("stream closed"));
+        };
+        let read = stream.read(&mut buf).await?;
 
         buf.truncate(read);
 
@@ -34,17 +33,32 @@ impl Tcp {
     }
 
     async fn write(&self, data: Vec<u8>) -> Result<(), Error> {
-        let mut handle = self.write_half.lock().await;
-        handle.write_all(&data).await?;
+        let mut handle = self.stream.lock().await;
+        let Some(stream) = handle.as_mut() else {
+            return Err(Error::other("stream closed"));
+        };
+        stream.write_all(&data).await?;
 
         Ok(())
     }
 
     async fn close(&self) -> Result<(), Error> {
-        let mut handle = self.write_half.lock().await;
+        let mut handle = self.stream.lock().await;
+        let Some(stream) = handle.as_mut() else {
+            return Err(Error::other("stream closed"));
+        };
+        stream.close().await?;
 
-        handle.close().await?;
+        Ok(())
+    }
 
+    pub async fn start_tls(&self, host: &str) -> Result<(), Error> {
+        let mut handle = self.stream.lock().await;
+        let Some(stream) = handle.take() else {
+            return Err(Error::other("stream closed"));
+        };
+        let stream = stream.upgrade_tls(host).await?;
+        *handle = Some(stream);
         Ok(())
     }
 }
@@ -59,13 +73,10 @@ where
         let local_addr = stream.local_addr().ok();
         let remote_addr = stream.remote_addr().ok();
 
-        let (read, write) = stream.split();
-
         Self {
             local_addr: Arc::new(local_addr),
             remote_addr: Arc::new(remote_addr),
-            read_half: Arc::new(AsyncMutex::new(read)),
-            write_half: Arc::new(AsyncMutex::new(write)),
+            stream: Arc::new(AsyncMutex::new(Some(stream))),
         }
     }
 }
@@ -103,6 +114,13 @@ impl LuaUserData for Tcp {
         methods.add_async_method("close", |_, this, (): ()| {
             let this = this.clone();
             async move { this.close().await.into_lua_err() }
+        });
+        methods.add_async_method("startTls", |_, this, host: String| {
+            let this = this.clone();
+            async move {
+                this.start_tls(&host).await.into_lua_err()?;
+                Ok(this)
+            }
         });
     }
 }

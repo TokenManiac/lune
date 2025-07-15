@@ -287,6 +287,11 @@ export type TcpStream = {
 local tcp = {}
 
 --[=[
+        TLS helpers for the `net` library
+]=]
+local tls = {}
+
+--[=[
 	Connects to the given host and port, returning a `TcpStream`.
 
 	For additional details, see the documentation for the `TcpConfig` and `TcpStream` types.
@@ -299,7 +304,18 @@ local tcp = {}
 	@return A connected TcpStream ready for reading and writing
 ]=]
 function tcp.connect(host: string, port: number, config: (true | TcpConfig)?): TcpStream
-	return nil :: any
+        return nil :: any
+end
+
+--[=[
+        Upgrades the given TCP stream to TLS.
+
+        @param stream The stream to upgrade
+        @param host The hostname used for TLS verification
+        @return The upgraded TcpStream
+]=]
+function tls.wrap(stream: TcpStream, host: string): TcpStream
+        return nil :: any
 end
 
 --[=[
@@ -348,6 +364,7 @@ end
 local net = {}
 
 net.tcp = tcp
+net.tls = tls
 
 --[=[
 	@within Net
