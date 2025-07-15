@@ -18,6 +18,7 @@ pub enum LuneStandardLibrary {
     #[cfg(feature = "serde")]    Serde,
     #[cfg(feature = "stdio")]    Stdio,
     #[cfg(feature = "roblox")]   Roblox,
+    #[cfg(feature = "proxy")]    Proxy,
 }
 
 impl LuneStandardLibrary {
@@ -36,6 +37,7 @@ impl LuneStandardLibrary {
         #[cfg(feature = "serde")]    Self::Serde,
         #[cfg(feature = "stdio")]    Self::Stdio,
         #[cfg(feature = "roblox")]   Self::Roblox,
+        #[cfg(feature = "proxy")]    Self::Proxy,
     ];
 
     /**
@@ -56,6 +58,7 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => "serde",
             #[cfg(feature = "stdio")]    Self::Stdio    => "stdio",
             #[cfg(feature = "roblox")]   Self::Roblox   => "roblox",
+            #[cfg(feature = "proxy")]    Self::Proxy    => "proxy",
 
             _ => unreachable!("no standard library enabled"),
         }
@@ -79,6 +82,7 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::typedefs(),
             #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::typedefs(),
             #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::typedefs(),
+            #[cfg(feature = "proxy")]    Self::Proxy    => lune_std_proxy::typedefs(),
 
             _ => unreachable!("no standard library enabled"),
         }
@@ -106,6 +110,7 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::module(mod_lua),
             #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::module(mod_lua),
             #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::module(mod_lua),
+            #[cfg(feature = "proxy")]    Self::Proxy    => lune_std_proxy::module(mod_lua),
 
             _ => unreachable!("no standard library enabled"),
         };
@@ -135,6 +140,7 @@ impl FromStr for LuneStandardLibrary {
             #[cfg(feature = "serde")]    "serde"    => Self::Serde,
             #[cfg(feature = "stdio")]    "stdio"    => Self::Stdio,
             #[cfg(feature = "roblox")]   "roblox"   => Self::Roblox,
+            #[cfg(feature = "proxy")]    "proxy"    => Self::Proxy,
 
             _ => {
                 return Err(format!(

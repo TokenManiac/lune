@@ -1710,6 +1710,7 @@ dependencies = [
  "lune-std-luau",
  "lune-std-net",
  "lune-std-process",
+ "lune-std-proxy",
  "lune-std-regex",
  "lune-std-roblox",
  "lune-std-serde",
@@ -1801,6 +1802,16 @@ dependencies = [
  "mlua",
  "mlua-luau-scheduler",
  "pin-project",
+]
+
+[[package]]
+name = "lune-std-proxy"
+version = "0.3.0"
+dependencies = [
+ "lune-std-net",
+ "lune-utils",
+ "mlua",
+ "url",
 ]
 
 [[package]]

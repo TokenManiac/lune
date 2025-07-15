@@ -12,12 +12,14 @@ pub(crate) mod url;
 use crate::shared::{hyper::HyperExecutor, tcp::Tcp};
 
 use self::{
-    client::{stream::WsStream, tcp::TcpConfig},
+    client::{stream::WsStream as InternalWsStream, tcp::TcpConfig},
     server::config::ServeConfig,
-    shared::{request::Request, response::Response, websocket::Websocket},
+    shared::{request::Request, response::Response, websocket::Websocket as InternalWebsocket},
 };
 
 pub use self::client::fetch;
+pub use self::client::stream::WsStream;
+pub use self::shared::websocket::Websocket;
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 

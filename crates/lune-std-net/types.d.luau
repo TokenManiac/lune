@@ -12,10 +12,12 @@ export type HttpHeaderMap = HttpQueryOrHeaderMap
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `decompress` - If the request body should be automatically decompressed when possible. Defaults to `true`
+        * `decompress` - If the request body should be automatically decompressed when possible. Defaults to `true`
+        * `proxy` - A SOCKS5 proxy URL to send the request through
 ]=]
 export type FetchParamsOptions = {
-	decompress: boolean?,
+        decompress: boolean?,
+        proxy: string?,
 }
 
 --[=[

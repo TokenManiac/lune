@@ -17,11 +17,12 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct RequestOptions {
     pub decompress: bool,
+    pub proxy: Option<String>,
 }
 
 impl Default for RequestOptions {
     fn default() -> Self {
-        Self { decompress: true }
+        Self { decompress: true, proxy: None }
     }
 }
 
@@ -38,7 +39,13 @@ impl FromLua for RequestOptions {
                     "Invalid option value for 'decompress' in request options".to_string(),
                 )),
             }?;
-            Ok(Self { decompress })
+            let proxy = match tab.get::<Option<String>>("proxy") {
+                Ok(p) => Ok(p),
+                Err(_) => Err(LuaError::RuntimeError(
+                    "Invalid option value for 'proxy' in request options".to_string(),
+                )),
+            }?;
+            Ok(Self { decompress, proxy })
         } else {
             // Anything else is invalid
             Err(LuaError::FromLuaConversionError {
@@ -59,6 +66,7 @@ pub struct Request {
     pub(crate) address: Option<SocketAddr>,
     pub(crate) redirects: Option<usize>,
     pub(crate) decompress: bool,
+    pub(crate) proxy: Option<Url>,
 }
 
 impl Request {
@@ -78,6 +86,7 @@ impl Request {
             address: None,
             redirects: None,
             decompress,
+            proxy: None,
         })
     }
 
@@ -164,6 +173,7 @@ impl<B: Into<ReadableBody>> From<HyperRequest<B>> for Request {
             address: None,
             redirects: None,
             decompress: false,
+            proxy: None,
         }
     }
 }
@@ -184,6 +194,7 @@ impl FromLua for Request {
                 address: None,
                 redirects: None,
                 decompress: RequestOptions::default().decompress,
+                proxy: None,
             })
         } else if let LuaValue::Table(tab) = value {
             // If we got a table we are able to configure the
@@ -232,6 +243,12 @@ impl FromLua for Request {
                 address: None,
                 redirects: None,
                 decompress: options.decompress,
+                proxy: options
+                    .proxy
+                    .as_deref()
+                    .map(|p| p.parse::<Url>())
+                    .transpose()
+                    .into_lua_err()?,
             })
         } else {
             // Anything else is invalid

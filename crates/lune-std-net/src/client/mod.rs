@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub mod rustls;
+pub mod socks;
 pub mod stream;
 pub mod tcp;
 
@@ -29,6 +30,14 @@ const MAX_REDIRECTS: usize = 10;
 */
 pub async fn connect_ws(url: Url) -> LuaResult<Websocket<WsStream>> {
     let stream = WsStream::connect_url(url).await?;
+    Ok(Websocket::from(stream))
+}
+
+/**
+    Connects to a websocket at the given URL using a SOCKS5 proxy.
+*/
+pub async fn connect_ws_proxy(proxy: Url, url: Url) -> LuaResult<Websocket<WsStream>> {
+    let stream = WsStream::connect_url_via_socks5(&proxy, url).await?;
     Ok(Websocket::from(stream))
 }
 

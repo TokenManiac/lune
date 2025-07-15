@@ -30,6 +30,7 @@ std-roblox = ["dep:lune-std", "lune-std/roblox"]
 std-serde = ["dep:lune-std", "lune-std/serde"]
 std-stdio = ["dep:lune-std", "lune-std/stdio"]
 std-task = ["dep:lune-std", "lune-std/task"]
+std-proxy = ["dep:lune-std", "lune-std/proxy"]
 
 std = [
     "std-datetime",
@@ -42,6 +43,7 @@ std = [
     "std-serde",
     "std-stdio",
     "std-task",
+    "std-proxy",
 ]
 
 cli = ["dep:clap", "dep:rustyline", "dep:zip", "dep:lune-std-net"]
