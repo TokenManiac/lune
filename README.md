@@ -1,13 +1,40 @@
-https://github.com/lune-org/lune vibe-coded to add a proxy library called "proxy" which adds support for socks5 ws:// and wss:// websocket proxy connections.
+# lune "proxy" Library (SOCKS5 over WebSocket Support)
 
-the tests are not fucking passing LMAO
+> **Note:**  
+> *Please do NOT use builds from this repo in production or any project exposed to the internet. While AI-generated code *might* work, security issues are likely**
 
-tcp just didnt cut my usecase, it does support tls but i have to connect to the websocket with tls.. not the socks5 proxy server..
-if you have this specific issue just install cargo and compile this lmao
+---
 
+## Quick Pitch
 
-they'd have to expose tls functions or something to do that.
-Or make ffi so I could use a C or Rust implementation just for that.
+I needed SOCKS5 support for `ws://` and `wss://` **WebSocket proxy connections**.  
+The existing TCP stuff? Meh—didn’t cut it for my use case. (Yes, it supports TLS, but only to the proxy, not to the WebSocket endpoint itself.)
 
-hopefully FFI DOESNT TAKE ANOTHER WHOLE YEAR TO COME TO LUNE PLEASE FILIP I BEG OF YOU
-ILL BUY YOU 5 (whole!!) CUPS OF COFFEES IN YOUR BUY ME A COFFEE LINK PLEASE
+Also while at it I just added
+proxy:
+
+So, if you’re banging your head against this same wall,  
+**install Cargo and build it yourself.**
+
+---
+**TCP != WebSocket:**  
+Lune’s TCP library proxy works with TLS, *but* we can only connect with TLS to the proxy itself, not the destination.
+**Need proper TLS exposure:** 
+Lune would have to expose TLS hooks for this to be a first-class feature.
+If only lune had ffi
+---
+
+## Current State
+
+- Some of the tests aren’t passing. 
+
+---
+
+## How to Try It
+
+1. **Clone this repo**
+2. **Install [Cargo](https://rustup.rs/)**
+3. **Build it yourself**
+   ```sh
+   cargo +nightly build --release
+   ```
