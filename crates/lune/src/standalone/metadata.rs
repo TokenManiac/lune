@@ -29,6 +29,7 @@ const MAGIC: &[u8; 8] = b"cr3sc3nt";
 #[derive(Debug, Clone)]
 pub struct Metadata {
     pub bytecode: Vec<u8>,
+    pub chunk_name: String,
 }
 
 impl Metadata {
@@ -50,6 +51,7 @@ impl Metadata {
     pub async fn create_env_patched_bin(
         base_exe_path: PathBuf,
         script_contents: impl Into<Vec<u8>>,
+        chunk_name: impl AsRef<str>,
     ) -> Result<Vec<u8>> {
         let compiler = LuaCompiler::new()
             .set_optimization_level(2)
@@ -62,7 +64,7 @@ impl Metadata {
         let bytecode = compiler.compile(script_contents.into())?;
 
         // Append the bytecode / metadata to the end
-        let meta = Self { bytecode };
+        let meta = Self { bytecode, chunk_name: chunk_name.as_ref().to_string() };
         patched_bin.extend_from_slice(&meta.to_bytes());
 
         Ok(patched_bin)
@@ -73,19 +75,28 @@ impl Metadata {
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
-        if bytes.len() < 16 || !bytes.ends_with(MAGIC) {
+        if bytes.len() < 24 || !bytes.ends_with(MAGIC) {
             bail!("not a standalone binary")
         }
 
-        // Extract bytecode size
+        // Extract sizes
         let bytecode_size_bytes = &bytes[bytes.len() - 16..bytes.len() - 8];
+        let chunk_name_size_bytes = &bytes[bytes.len() - 24..bytes.len() - 16];
+
         let bytecode_size =
             usize::try_from(u64::from_be_bytes(bytecode_size_bytes.try_into().unwrap()))?;
+        let chunk_name_size =
+            usize::try_from(u64::from_be_bytes(chunk_name_size_bytes.try_into().unwrap()))?;
 
-        // Extract bytecode
-        let bytecode = bytes[bytes.len() - 16 - bytecode_size..].to_vec();
+        // Extract contents
+        let chunk_end = bytes.len() - 24;
+        let chunk_start = chunk_end - chunk_name_size;
+        let bytecode_start = chunk_start - bytecode_size;
 
-        Ok(Self { bytecode })
+        let chunk_name = String::from_utf8(bytes[chunk_start..chunk_end].to_vec())?;
+        let bytecode = bytes[bytecode_start..chunk_start].to_vec();
+
+        Ok(Self { bytecode, chunk_name })
     }
 
     /**
@@ -94,6 +105,8 @@ impl Metadata {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.bytecode);
+        bytes.extend_from_slice(self.chunk_name.as_bytes());
+        bytes.extend_from_slice(&(self.chunk_name.len() as u64).to_be_bytes());
         bytes.extend_from_slice(&(self.bytecode.len() as u64).to_be_bytes());
         bytes.extend_from_slice(MAGIC);
         bytes
