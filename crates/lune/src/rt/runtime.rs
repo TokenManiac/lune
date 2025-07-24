@@ -111,6 +111,48 @@ impl Runtime {
         // Sandbox the Luau VM and make it go zooooooooom
         lua.sandbox(true)?;
 
+        // Replace the restricted collectgarbage with a version that allows all
+        // options. This mirrors the original Luau behavior while keeping other
+        // sandbox protections intact.
+        use mlua::ffi;
+        use std::ffi::CStr;
+        use std::os::raw::c_int;
+
+        unsafe extern "C-unwind" fn gc_unrestricted(state: *mut ffi::lua_State) -> c_int {
+            unsafe {
+                let option = ffi::luaL_optstring(state, 1, b"collect\0".as_ptr() as _);
+                let option = CStr::from_ptr(option);
+                let arg = ffi::luaL_optinteger(state, 2, 0);
+                match option.to_str() {
+                    Ok("collect") => { ffi::lua_gc(state, ffi::LUA_GCCOLLECT, 0); 0 }
+                    Ok("stop") => { ffi::lua_gc(state, ffi::LUA_GCSTOP, 0); 0 }
+                    Ok("restart") => { ffi::lua_gc(state, ffi::LUA_GCRESTART, 0); 0 }
+                    Ok("count") => {
+                        let kbytes = ffi::lua_gc(state, ffi::LUA_GCCOUNT, 0) as ffi::lua_Number;
+                        let kbytes_rem = ffi::lua_gc(state, ffi::LUA_GCCOUNTB, 0) as ffi::lua_Number;
+                        ffi::lua_pushnumber(state, kbytes + kbytes_rem / 1024.0);
+                        1
+                    }
+                    Ok("step") => {
+                        let res = ffi::lua_gc(state, ffi::LUA_GCSTEP, arg as _);
+                        ffi::lua_pushboolean(state, res);
+                        1
+                    }
+                    Ok("isrunning") => {
+                        let res = ffi::lua_gc(state, ffi::LUA_GCISRUNNING, 0);
+                        ffi::lua_pushboolean(state, res);
+                        1
+                    }
+                    _ => ffi::luaL_error(state, b"collectgarbage called with invalid option\0".as_ptr() as _),
+                }
+            }
+        }
+
+        unsafe {
+            let gc_func = lua.create_c_function(gc_unrestricted)?;
+            lua.globals().raw_set("collectgarbage", gc_func)?;
+        }
+
         // _G table needs to be injected again after sandboxing,
         // otherwise it will be read-only and completely unusable
         #[cfg(any(
@@ -270,7 +312,12 @@ impl Runtime {
         chunk_name: impl AsRef<str>,
         chunk_contents: impl AsRef<[u8]>,
     ) -> RuntimeResult<RuntimeReturnValues> {
-        let chunk_name = format!("={}", chunk_name.as_ref());
+        let name = chunk_name.as_ref();
+        let chunk_name = if name.starts_with('@') {
+            name.to_string()
+        } else {
+            format!("={}", name)
+        };
         self.run_inner(chunk_name, chunk_contents).await
     }
 
