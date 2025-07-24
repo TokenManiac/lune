@@ -31,7 +31,8 @@ pub async fn run(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
 
     let mut rt = Runtime::new()?.with_args(args);
 
-    let result = rt.run_custom("STANDALONE", meta.bytecode).await;
+    // Use the original chunk name so require() works as expected
+    let result = rt.run_custom(meta.chunk_name, meta.bytecode).await;
 
     Ok(match result {
         Err(err) => {

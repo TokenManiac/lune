@@ -69,9 +69,15 @@ impl BuildCommand {
             "Compiling standalone binary from {}",
             style(self.input.display()).green()
         );
-        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code)
-            .await
-            .context("failed to create patched binary")?;
+        let module_path = remove_source_file_ext(&self.input);
+        let chunk_name = format!("@{}", module_path.display());
+        let patched_bin = Metadata::create_env_patched_bin(
+            base_exe_path,
+            source_code,
+            &chunk_name,
+        )
+        .await
+        .context("failed to create patched binary")?;
 
         // And finally write the patched binary to the output file
         println!(
